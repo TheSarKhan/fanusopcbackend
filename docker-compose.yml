@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: fanus_postgres
+    environment:
+      POSTGRES_DB: fanus
+      POSTGRES_USER: fanus
+      POSTGRES_PASSWORD: FanusDb2024Secure
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fanus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fanus_redis
+    command: redis-server --requirepass FanusRd2024Secure
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "FanusRd2024Secure", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
