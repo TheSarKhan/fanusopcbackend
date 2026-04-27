@@ -35,14 +35,14 @@ jobs:
             git pull origin $(git rev-parse --abbrev-ref HEAD)
 
             echo "🐳 Docker Compose ilə build və restart..."
-            docker-compose down
-            docker-compose up --build -d
+            docker compose down
+            docker compose up --build -d
 
             echo "⏳ Servisin ayağa qalxması gözlənilir..."
             sleep 15
 
             echo "📋 Container statusu yoxlanılır..."
-            docker-compose ps
+            docker compose ps
 
       - name: Telegram — Uğurlu
         if: success()
