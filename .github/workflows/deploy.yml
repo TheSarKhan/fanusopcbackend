@@ -1,15 +1,12 @@
 name: Backend Deploy
-
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
 jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,9 +20,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             set -e
-
             APP_DIR="/opt/fanusopc/backend"
-            APP_NAME="fanusopc-backend"
             REPO_URL="https://github.com/TheSarKhan/fanusopcbackend.git"
 
             echo "📦 Repo yoxlanılır..."
@@ -39,47 +34,15 @@ jobs:
             echo "⬇️ Git pull..."
             git pull origin $(git rev-parse --abbrev-ref HEAD)
 
-            COMMIT_HASH=$(git rev-parse --short HEAD)
-            COMMIT_MSG=$(git log -1 --pretty=format:"%s")
-
-            echo "📦 npm install..."
-            npm install --production
-
-            echo "🚀 PM2 ilə servis başladılır..."
-            if ! command -v pm2 &>/dev/null; then
-              npm install -g pm2
-            fi
-
-            if pm2 list | grep -q "$APP_NAME"; then
-              pm2 restart "$APP_NAME" --update-env
-            else
-              pm2 start npm --name "$APP_NAME" -- start
-            fi
-            pm2 save
+            echo "🐳 Docker Compose ilə build və restart..."
+            docker-compose down
+            docker-compose up --build -d
 
             echo "⏳ Servisin ayağa qalxması gözlənilir..."
-            sleep 10
+            sleep 15
 
-            echo "📋 Loglar yoxlanılır..."
-            LOG_OUTPUT=$(pm2 logs "$APP_NAME" --lines 50 --nostream 2>&1)
-            echo "$LOG_OUTPUT"
-
-            ERROR_LINES=$(echo "$LOG_OUTPUT" | grep -iE "error|exception|fatal|crash|EADDRINUSE" | grep -v "DeprecationWarning" | head -3)
-            IS_ONLINE=$(pm2 show "$APP_NAME" 2>&1 | grep "status" | grep -c "online" || true)
-
-            echo "COMMIT_HASH=$COMMIT_HASH" >> /tmp/backend_deploy_env
-            echo "COMMIT_MSG=$COMMIT_MSG" >> /tmp/backend_deploy_env
-            echo "IS_ONLINE=$IS_ONLINE" >> /tmp/backend_deploy_env
-            echo "ERROR_LINES=$ERROR_LINES" >> /tmp/backend_deploy_env
-
-            if [ "$IS_ONLINE" -ge 1 ] && [ -z "$ERROR_LINES" ]; then
-              echo "DEPLOY_STATUS=success" >> /tmp/backend_deploy_env
-            else
-              echo "DEPLOY_STATUS=warning" >> /tmp/backend_deploy_env
-            fi
-
-            cat /tmp/backend_deploy_env
-            rm -f /tmp/backend_deploy_env
+            echo "📋 Container statusu yoxlanılır..."
+            docker-compose ps
 
       - name: Telegram — Uğurlu
         if: success()
@@ -93,7 +56,7 @@ jobs:
           💬 Mesaj: ${{ github.event.head_commit.message }}
           👤 Kim: ${{ github.actor }}
           🌿 Branch: ${{ github.ref_name }}
-          📊 PM2: Servis işləyir"
+          🐳 Docker: Servis işləyir"
 
       - name: Telegram — Uğursuz
         if: failure()
