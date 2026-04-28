@@ -1,0 +1,72 @@
+name: Backend Deploy
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            APP_DIR="/opt/fanusopc/backend"
+            REPO_URL="https://github.com/TheSarKhan/fanusopcbackend.git"
+
+            echo "📦 Repo yoxlanılır..."
+            if [ ! -d "$APP_DIR" ]; then
+              mkdir -p "$(dirname $APP_DIR)"
+              git clone "$REPO_URL" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+
+            echo "⬇️ Git pull..."
+            git pull origin $(git rev-parse --abbrev-ref HEAD)
+
+            echo "🐳 Docker Compose ilə build və restart..."
+            docker compose down
+            docker compose up --build -d
+
+            echo "⏳ Servisin ayağa qalxması gözlənilir..."
+            sleep 15
+
+            echo "📋 Container statusu yoxlanılır..."
+            docker compose ps
+
+      - name: Telegram — Uğurlu
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="✅ <b>[BACKEND] Fanusopc Deploy uğurlu!</b>
+          🕐 Vaxt: $(date '+%Y-%m-%d %H:%M:%S')
+          📦 Commit: <code>${{ github.sha }}</code>
+          💬 Mesaj: ${{ github.event.head_commit.message }}
+          👤 Kim: ${{ github.actor }}
+          🌿 Branch: ${{ github.ref_name }}
+          🐳 Docker: Servis işləyir"
+
+      - name: Telegram — Uğursuz
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="❌ <b>[BACKEND] Fanusopc Deploy UĞURSUZ!</b>
+          🕐 Vaxt: $(date '+%Y-%m-%d %H:%M:%S')
+          📦 Commit: <code>${{ github.sha }}</code>
+          💬 Mesaj: ${{ github.event.head_commit.message }}
+          👤 Kim: ${{ github.actor }}
+          🔗 Log: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
