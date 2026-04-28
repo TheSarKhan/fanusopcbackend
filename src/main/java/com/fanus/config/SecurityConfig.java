@@ -29,8 +29,8 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOriginsRaw;
+    @Value("${app.cors.allowed-origin-pattern:https://*.fanus.com}")
+    private String allowedOriginPattern;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -39,7 +39,6 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/psychologists/**").permitAll()
@@ -51,8 +50,11 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/site-config/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/appointments").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
-                // Admin endpoints
+                // Role-specific endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/operator/**").hasRole("OPERATOR")
+                .requestMatchers("/api/psychologist/**").hasRole("PSYCHOLOGIST")
+                .requestMatchers("/api/patient/**").hasRole("PATIENT")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -63,7 +65,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOriginsRaw.split(",")));
+        config.addAllowedOriginPattern(allowedOriginPattern);
+        // Also allow localhost for dev
+        config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("http://*.localhost:*");
+        config.addAllowedOriginPattern("http://*.lvh.me:*");
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

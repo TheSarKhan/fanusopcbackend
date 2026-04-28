@@ -1,17 +1,21 @@
 package com.fanus.controller;
 
 import com.fanus.dto.*;
+import com.fanus.entity.User;
+import com.fanus.repository.UserRepository;
 import com.fanus.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -28,6 +32,43 @@ public class AdminController {
     private final SiteConfigService siteConfigService;
     private final AppointmentService appointmentService;
     private final FileStorageService fileStorageService;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+
+    // ─── Operators ────────────────────────────────────────────────────────────
+    @PostMapping("/operators")
+    public ResponseEntity<Map<String, Object>> createOperator(
+            @Valid @RequestBody CreateOperatorRequest req) {
+
+        if (userRepository.existsByEmail(req.email())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Bu email artıq mövcuddur"));
+        }
+
+        String tempPassword = "Fanus@" + UUID.randomUUID().toString().substring(0, 8);
+
+        User operator = User.builder()
+            .email(req.email())
+            .password(passwordEncoder.encode(tempPassword))
+            .role("OPERATOR")
+            .firstName(req.firstName())
+            .lastName(req.lastName())
+            .phone(req.phone())
+            .emailVerified(true)
+            .build();
+
+        operator = userRepository.save(operator);
+        emailService.sendOperatorCredentialsEmail(
+            operator.getEmail(), operator.getFirstName(), tempPassword);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(Map.of(
+                "id", operator.getId(),
+                "email", operator.getEmail(),
+                "message", "Operator hesabı yaradıldı və email göndərildi"
+            ));
+    }
 
     // ─── Upload ───────────────────────────────────────────────────────────────
     @PostMapping("/upload")

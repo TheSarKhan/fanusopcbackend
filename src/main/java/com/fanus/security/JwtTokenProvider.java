@@ -23,10 +23,15 @@ public class JwtTokenProvider {
         this.accessTokenExpiryMs = accessTokenExpiryMs;
     }
 
-    public String generateAccessToken(String email, String role) {
+    public long getAccessTokenExpiryMs() {
+        return accessTokenExpiryMs;
+    }
+
+    public String generateAccessToken(Long userId, String email, String role) {
         Date now = new Date();
         return Jwts.builder()
             .subject(email)
+            .claim("userId", userId)
             .claim("role", role)
             .issuedAt(now)
             .expiration(new Date(now.getTime() + accessTokenExpiryMs))
@@ -40,6 +45,10 @@ public class JwtTokenProvider {
 
     public String getRole(String token) {
         return parseClaims(token).get("role", String.class);
+    }
+
+    public Long getUserId(String token) {
+        return parseClaims(token).get("userId", Long.class);
     }
 
     public boolean validate(String token) {

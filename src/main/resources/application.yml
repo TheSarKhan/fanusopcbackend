@@ -31,6 +31,18 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 server:
   port: ${SERVER_PORT:8080}
 
@@ -40,12 +52,27 @@ app:
     access-token-expiry-ms: ${JWT_ACCESS_EXPIRY_MS:900000}
     refresh-token-expiry-seconds: ${JWT_REFRESH_EXPIRY_S:604800}
 
+  cookie:
+    domain: ${COOKIE_DOMAIN:localhost}   # prod: .fanusopc.com
+    secure: ${COOKIE_SECURE:false}       # prod: true
+
+  email:
+    provider: ${EMAIL_PROVIDER:sendpulse}
+    from: ${EMAIL_FROM:noreply@fanus.az}
+    from-name: ${EMAIL_FROM_NAME:Fanus Psixologiya}
+    sendpulse:
+      client-id: ${SENDPULSE_CLIENT_ID:}
+      client-secret: ${SENDPULSE_CLIENT_SECRET:}
+
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+
   upload:
     dir: ${UPLOAD_DIR:uploads/}
     base-url: ${UPLOAD_BASE_URL:http://localhost:8080/uploads/}
 
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,https://fanusopc.com}
+    allowed-origin-pattern: ${CORS_ORIGIN_PATTERN:https://*.fanus.com}
 
 springdoc:
   api-docs:
