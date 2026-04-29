@@ -64,6 +64,34 @@ public class EmailTemplateService {
         );
     }
 
+    public String buildPsychologistApplicationReceived(String firstName) {
+        String link = frontendUrl + "/psychologist/status";
+        return wrap(
+            "Müraciətiniz Alındı",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Fanus platformasına psixoloq kimi qoşulmaq üçün müraciətiniz uğurla qəbul edildi.</p>" +
+            "<p>Komandamız sənədlərinizi yoxlayacaq. Nəticə barədə sizə bildiriş göndəriləcək. " +
+            "Adətən bu proses 2–5 iş günü ərzində tamamlanır.</p>",
+            link, "Müraciətin Statusu",
+            "<p style='color:#6B7280;font-size:13px;'>Suallarınız üçün bizimlə əlaqə saxlaya bilərsiniz.</p>"
+        );
+    }
+
+    public String buildPsychologistApplicationAdminNotification(String firstName, String lastName, String email) {
+        String link = "https://admin.fanusopc.com/applications";
+        return wrap(
+            "Yeni Psixoloq Müraciəti",
+            "<p>Yeni psixoloq müraciəti daxil oldu:</p>" +
+            "<div style='background:#F3F4F6;border-radius:8px;padding:16px;margin:16px 0;'>" +
+            "<p style='margin:4px 0;'><strong>Ad Soyad:</strong> " + firstName + " " + lastName + "</p>" +
+            "<p style='margin:4px 0;'><strong>Email:</strong> " + email + "</p>" +
+            "</div>" +
+            "<p>Admin panelindən müraciəti nəzərdən keçirin.</p>",
+            link, "Admin Panelinə Keç",
+            ""
+        );
+    }
+
     private String wrap(String title, String body, String ctaLink, String ctaText, String footer) {
         return """
             <!DOCTYPE html>

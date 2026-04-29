@@ -5,4 +5,6 @@ public interface EmailService {
     void sendWelcomeEmail(String to, String firstName);
     void sendPasswordResetEmail(String to, String firstName, String token);
     void sendOperatorCredentialsEmail(String to, String firstName, String tempPassword);
+    void sendPsychologistApplicationReceived(String to, String firstName);
+    void sendPsychologistApplicationAdminNotification(String adminEmail, String firstName, String lastName, String email);
 }

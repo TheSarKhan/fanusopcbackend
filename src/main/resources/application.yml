@@ -34,8 +34,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -57,9 +57,10 @@ app:
     secure: ${COOKIE_SECURE:false}       # prod: true
 
   email:
-    provider: ${EMAIL_PROVIDER:sendpulse}
-    from: ${EMAIL_FROM:noreply@fanus.az}
+    provider: ${EMAIL_PROVIDER:gmail}
+    from: ${EMAIL_FROM}
     from-name: ${EMAIL_FROM_NAME:Fanus Psixologiya}
+    admin: ${EMAIL_ADMIN}
     sendpulse:
       client-id: ${SENDPULSE_CLIENT_ID:}
       client-secret: ${SENDPULSE_CLIENT_SECRET:}

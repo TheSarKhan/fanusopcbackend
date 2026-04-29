@@ -9,6 +9,7 @@ import com.fanus.security.JwtTokenProvider;
 import com.fanus.security.RefreshTokenService;
 import com.fanus.service.EmailService;
 import com.fanus.service.PatientService;
+import com.fanus.service.PsychologistApplicationService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +21,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,6 +40,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final PatientService patientService;
     private final EmailService emailService;
+    private final PsychologistApplicationService psychologistApplicationService;
 
     @Value("${app.cookie.domain:}")
     private String cookieDomain;
@@ -107,6 +111,49 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
             .body(Map.of("message", "Qeydiyyat uğurlu oldu. Email ünvanınızı təsdiqləyin."));
+    }
+
+    // ─── Register Psychologist ────────────────────────────────────────────────
+
+    @PostMapping(value = "/register/psychologist", consumes = "multipart/form-data")
+    public ResponseEntity<Map<String, String>> registerPsychologist(
+            @RequestParam("firstName") String firstName,
+            @RequestParam("lastName") String lastName,
+            @RequestParam("email") String email,
+            @RequestParam(value = "phone", required = false) String phone,
+            @RequestParam("password") String password,
+            @RequestParam(value = "languages", required = false) List<String> languages,
+            @RequestParam("university") String university,
+            @RequestParam("degree") String degree,
+            @RequestParam("graduationYear") String graduationYear,
+            @RequestParam(value = "specializations", required = false) List<String> specializations,
+            @RequestParam(value = "sessionTypes", required = false) List<String> sessionTypes,
+            @RequestParam(value = "experienceYears", required = false) String experienceYears,
+            @RequestParam(value = "activityFormat", required = false) String activityFormat,
+            @RequestParam(value = "bio", required = false) String bio,
+            @RequestParam(value = "certifications", required = false) List<String> certifications,
+            @RequestParam("diplomaFile") MultipartFile diplomaFile,
+            @RequestParam(value = "certificateFiles", required = false) List<MultipartFile> certificateFiles) {
+
+        if (diplomaFile == null || diplomaFile.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", "Diplom faylı tələb olunur"));
+        }
+
+        if (userRepository.existsByEmail(email) || psychologistApplicationService.emailExists(email)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Bu email artıq qeydiyyatdan keçib"));
+        }
+
+        psychologistApplicationService.submit(
+            firstName, lastName, email, phone, password,
+            university, degree, graduationYear,
+            specializations, sessionTypes, experienceYears, bio, certifications,
+            diplomaFile, languages, activityFormat, certificateFiles
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(Map.of("message", "Müraciətiniz qəbul edildi. Yoxlama tamamlandıqdan sonra sizə bildiriş göndəriləcək."));
     }
 
     // ─── Verify Email ─────────────────────────────────────────────────────────
