@@ -37,12 +37,16 @@ jobs:
             echo "🐳 Docker Compose ilə build və restart..."
             docker compose down
             docker compose up --build -d
-
+            systemctl restart fanusopc-backend
+            
             echo "⏳ Servisin ayağa qalxması gözlənilir..."
             sleep 15
 
             echo "📋 Container statusu yoxlanılır..."
             docker compose ps
+            systemctl is-active --quiet fanusopc-backend \
+              && echo "✅ Servis işləyir" \
+              || { echo "❌ Servis işləmir!"; journalctl -u fanusopc-backend -n 50 --no-pager; exit 1; } 
 
       - name: Telegram — Uğurlu
         if: success()
