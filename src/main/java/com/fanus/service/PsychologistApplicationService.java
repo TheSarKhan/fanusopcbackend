@@ -1,10 +1,12 @@
 package com.fanus.service;
 
 import com.fanus.dto.PsychologistApplicationDto;
+import com.fanus.entity.Psychologist;
 import com.fanus.entity.PsychologistApplication;
 import com.fanus.entity.User;
 import com.fanus.exception.ResourceNotFoundException;
 import com.fanus.repository.PsychologistApplicationRepository;
+import com.fanus.repository.PsychologistRepository;
 import com.fanus.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +30,7 @@ public class PsychologistApplicationService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final PsychologistRepository psychologistRepository;
 
     @Value("${app.email.admin}")
     private String adminEmail;
@@ -55,6 +58,25 @@ public class PsychologistApplicationService {
             .emailVerified(true)
             .build();
         userRepository.save(user);
+
+        List<String> specs = app.getSpecializations() != null
+            ? List.of(app.getSpecializations().split(",")).stream().map(String::trim).filter(s -> !s.isEmpty()).toList()
+            : List.of();
+        String experience = app.getExperienceYears() != null ? app.getExperienceYears() + " il" : "0 il";
+
+        Psychologist profile = Psychologist.builder()
+            .name(app.getFirstName() + " " + app.getLastName())
+            .title("Psixoloq")
+            .specializations(specs)
+            .experience(experience)
+            .sessionsCount("0")
+            .rating("0.0")
+            .accentColor("#2f5283")
+            .bgColor("#eef1f7")
+            .displayOrder(0)
+            .active(true)
+            .build();
+        psychologistRepository.save(profile);
 
         app.setStatus("APPROVED");
         app.setAdminNote(adminNote);
