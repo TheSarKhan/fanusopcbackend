@@ -52,6 +52,16 @@ public class GmailEmailProvider implements EmailService {
         send(adminEmail, "Fanus – Yeni Psixoloq Müraciəti", templateService.buildPsychologistApplicationAdminNotification(firstName, lastName, email));
     }
 
+    @Override
+    public void sendPsychologistApproved(String to, String firstName) {
+        send(to, "Fanus – Müraciətiniz Təsdiqləndi", templateService.buildPsychologistApproved(firstName));
+    }
+
+    @Override
+    public void sendPsychologistRejected(String to, String firstName, String adminNote) {
+        send(to, "Fanus – Müraciətiniz Haqqında Bildiriş", templateService.buildPsychologistRejected(firstName, adminNote));
+    }
+
     private void send(String to, String subject, String html) {
         try {
             MimeMessage msg = mailSender.createMimeMessage();

@@ -64,6 +64,18 @@ public class SendPulseEmailProvider implements EmailService {
                 templateService.buildPsychologistApplicationAdminNotification(firstName, lastName, email));
     }
 
+    @Override
+    public void sendPsychologistApproved(String to, String firstName) {
+        sendHtml(to, firstName, "Fanus – Müraciətiniz Təsdiqləndi",
+                templateService.buildPsychologistApproved(firstName));
+    }
+
+    @Override
+    public void sendPsychologistRejected(String to, String firstName, String adminNote) {
+        sendHtml(to, firstName, "Fanus – Müraciətiniz Haqqında Bildiriş",
+                templateService.buildPsychologistRejected(firstName, adminNote));
+    }
+
     private void sendHtml(String to, String toName, String subject, String html) {
         if (clientId.isBlank() || clientSecret.isBlank()) {
             log.warn("SendPulse credentials not configured; email to {} skipped. Subject: {}", to, subject);

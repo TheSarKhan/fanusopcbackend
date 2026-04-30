@@ -54,8 +54,7 @@ public class AuthController {
     public ResponseEntity<?> login(
             @Valid @RequestBody AuthRequest req,
             HttpServletResponse response) {
-
-        authManager.authenticate(new UsernamePasswordAuthenticationToken(req.email(), req.password()));
+         authManager.authenticate(new UsernamePasswordAuthenticationToken(req.email(), req.password()));
         User user = userRepository.findByEmail(req.email())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 

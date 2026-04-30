@@ -24,6 +24,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final PsychologistService psychologistService;
+    private final PsychologistApplicationService psychologistApplicationService;
     private final StatService statService;
     private final AnnouncementService announcementService;
     private final BlogPostService blogPostService;
@@ -244,6 +245,28 @@ public class AdminController {
     @GetMapping("/reports")
     public ReportsDto reports() {
         return reportsService.build();
+    }
+
+    // ─── Psychologist Applications ────────────────────────────────────────────
+    @GetMapping("/applications")
+    public List<PsychologistApplicationDto> allApplications() {
+        return psychologistApplicationService.findAll();
+    }
+
+    @PutMapping("/applications/{id}/approve")
+    public PsychologistApplicationDto approveApplication(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body) {
+        String note = body != null ? body.get("adminNote") : null;
+        return psychologistApplicationService.approve(id, note);
+    }
+
+    @PutMapping("/applications/{id}/reject")
+    public PsychologistApplicationDto rejectApplication(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body) {
+        String note = body != null ? body.get("adminNote") : null;
+        return psychologistApplicationService.reject(id, note);
     }
 
     // ─── Users (lookup for activity feed / settings) ─────────────────────────

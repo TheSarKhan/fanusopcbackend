@@ -92,6 +92,36 @@ public class EmailTemplateService {
         );
     }
 
+    public String buildPsychologistApproved(String firstName) {
+        String link = frontendUrl + "/psychologist/dashboard";
+        return wrap(
+            "Müraciətiniz Təsdiqləndi!",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Fanus platformasına psixoloq kimi qoşulmaq üçün müraciətiniz <strong>uğurla təsdiqləndi</strong>.</p>" +
+            "<p>Artıq mövcud email və şifrənizlə psixoloq panelinə daxil ola bilərsiniz.</p>",
+            link, "Panelinə Daxil Ol",
+            "<p style='color:#6B7280;font-size:13px;'>Suallarınız üçün bizimlə əlaqə saxlaya bilərsiniz.</p>"
+        );
+    }
+
+    public String buildPsychologistRejected(String firstName, String adminNote) {
+        String link = frontendUrl + "/contact";
+        String noteHtml = (adminNote != null && !adminNote.isBlank())
+            ? "<div style='background:#FEF2F2;border-left:4px solid #EF4444;border-radius:4px;padding:12px 16px;margin:16px 0;'>" +
+              "<p style='margin:0;color:#991B1B;font-size:14px;'><strong>Qeyd:</strong> " + adminNote + "</p>" +
+              "</div>"
+            : "";
+        return wrap(
+            "Müraciətiniz Qəbul Edilmədi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Təəssüflə bildiririk ki, hazırda müraciətinizi qəbul edə bilmirik.</p>" +
+            noteHtml +
+            "<p>Ətraflı məlumat üçün bizimlə əlaqə saxlaya bilərsiniz.</p>",
+            link, "Bizimlə Əlaqə",
+            "<p style='color:#6B7280;font-size:13px;'>Gələcəkdə yenidən müraciət edə bilərsiniz.</p>"
+        );
+    }
+
     private String wrap(String title, String body, String ctaLink, String ctaText, String footer) {
         return """
             <!DOCTYPE html>
