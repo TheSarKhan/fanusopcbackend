@@ -65,8 +65,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern(allowedOriginPattern);
-        // Also allow localhost for dev
+        
+        if (allowedOriginPattern != null && !allowedOriginPattern.isBlank()) {
+            for (String p : allowedOriginPattern.split(",")) {
+                config.addAllowedOriginPattern(p.trim());
+            }
+        }
+        
+        // Also allow starsoft.az domains and localhost for dev
+        config.addAllowedOriginPattern("https://*.starsoft.az");
+        config.addAllowedOriginPattern("https://starsoft.az");
         config.addAllowedOriginPattern("http://localhost:*");
         config.addAllowedOriginPattern("http://*.localhost:*");
         config.addAllowedOriginPattern("http://*.lvh.me:*");
