@@ -41,6 +41,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/auth/**").permitAll() // Fallback for old frontend URLs
                 .requestMatchers(HttpMethod.GET, "/api/psychologists/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/stats/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/announcements/**").permitAll()
