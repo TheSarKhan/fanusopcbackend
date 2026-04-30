@@ -73,6 +73,7 @@ public class SecurityConfig {
         }
         
         // Also allow starsoft.az domains and localhost for dev
+        config.addAllowedOrigin("https://fanusopc.starsoft.az");
         config.addAllowedOriginPattern("https://*.starsoft.az");
         config.addAllowedOriginPattern("https://starsoft.az");
         config.addAllowedOriginPattern("http://localhost:*");
