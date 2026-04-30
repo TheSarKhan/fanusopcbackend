@@ -23,5 +23,6 @@ public record PsychologistApplicationDto(
     String status,
     String adminNote,
     LocalDateTime createdAt,
-    LocalDateTime reviewedAt
+    LocalDateTime reviewedAt,
+    String photoUrl
 ) {}

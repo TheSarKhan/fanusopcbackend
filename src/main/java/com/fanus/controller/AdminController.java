@@ -1,11 +1,17 @@
 package com.fanus.controller;
 
 import com.fanus.dto.*;
+import com.fanus.entity.Psychologist;
 import com.fanus.entity.User;
+import com.fanus.exception.ResourceNotFoundException;
 import com.fanus.repository.UserRepository;
 import com.fanus.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +22,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -24,6 +36,8 @@ import java.util.UUID;
 public class AdminController {
 
     private final PsychologistService psychologistService;
+    private final com.fanus.repository.PsychologistRepository psychologistRepository;
+    private final com.fanus.repository.PsychologistApplicationRepository psychologistApplicationRepository;
     private final PsychologistApplicationService psychologistApplicationService;
     private final StatService statService;
     private final AnnouncementService announcementService;
@@ -269,7 +283,7 @@ public class AdminController {
         return psychologistApplicationService.reject(id, note);
     }
 
-    // ─── Users (lookup for activity feed / settings) ─────────────────────────
+    // ─── Users ────────────────────────────────────────────────────────────────
     @GetMapping("/users/summary")
     public Map<String, Long> usersSummary() {
         return Map.of(
@@ -278,5 +292,240 @@ public class AdminController {
             "OPERATOR", userRepository.countByRole("OPERATOR"),
             "ADMIN", userRepository.countByRole("ADMIN")
         );
+    }
+
+    @GetMapping("/users")
+    public PagedUsersResponse listUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0")   int page,
+            @RequestParam(defaultValue = "20")  int size,
+            @RequestParam(defaultValue = "createdAt") String sort,
+            @RequestParam(defaultValue = "desc") String dir) {
+
+        // Clamp page size to reasonable bounds
+        int safeSize = Math.min(Math.max(size, 5), 100);
+        String search = (q != null && !q.isBlank()) ? q.trim().toLowerCase() : null;
+
+        // Build sort
+        Sort.Direction direction = "asc".equalsIgnoreCase(dir) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        String sortField = List.of("email", "firstName", "lastName", "createdAt", "lastLogin", "role")
+            .contains(sort) ? sort : "createdAt";
+        Pageable pageable = PageRequest.of(page, safeSize, Sort.by(direction, sortField));
+
+        Page<User> userPage;
+        if (role != null && !role.isBlank()) {
+            userPage = userRepository.findByRoleFiltered(role, search, pageable);
+        } else {
+            userPage = userRepository.findAllFiltered(search, pageable);
+        }
+
+        List<UserDto> content = userPage.getContent().stream().map(this::toUserDto).toList();
+
+        // Role counts for stat cards (always full dataset, not filtered)
+        Map<String, Long> roleCounts = Map.of(
+            "total",         userRepository.count(),
+            "PATIENT",       userRepository.countByRole("PATIENT"),
+            "PSYCHOLOGIST",  userRepository.countByRole("PSYCHOLOGIST"),
+            "OPERATOR",      userRepository.countByRole("OPERATOR"),
+            "ADMIN",         userRepository.countByRole("ADMIN")
+        );
+
+        return new PagedUsersResponse(content, userPage.getTotalElements(),
+            userPage.getTotalPages(), page, safeSize, roleCounts);
+    }
+
+    @GetMapping("/users/export")
+    public ResponseEntity<byte[]> exportUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String q) throws IOException {
+            
+        String search = (q != null && !q.isBlank()) ? q.trim().toLowerCase() : null;
+        List<User> users;
+        // Fetch without pagination for export (up to a reasonable limit, Pageable.unpaged() works)
+        if (role != null && !role.isBlank()) {
+            users = userRepository.findByRoleFiltered(role, search, Pageable.unpaged()).getContent();
+        } else {
+            users = userRepository.findAllFiltered(search, Pageable.unpaged()).getContent();
+        }
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("İstifadəçilər");
+            Row headerRow = sheet.createRow(0);
+            String[] columns = {"ID", "Email", "Ad", "Soyad", "Telefon", "Rol", "Status", "Qeydiyyat"};
+            for (int i = 0; i < columns.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(columns[i]);
+            }
+
+            int rowNum = 1;
+            for (User u : users) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(u.getId());
+                row.createCell(1).setCellValue(u.getEmail());
+                row.createCell(2).setCellValue(u.getFirstName() == null ? "" : u.getFirstName());
+                row.createCell(3).setCellValue(u.getLastName() == null ? "" : u.getLastName());
+                row.createCell(4).setCellValue(u.getPhone() == null ? "" : u.getPhone());
+                row.createCell(5).setCellValue(u.getRole());
+                row.createCell(6).setCellValue(u.isActive() ? "Aktiv" : "Deaktiv");
+                row.createCell(7).setCellValue(u.getCreatedAt() != null ? u.getCreatedAt().toString() : "");
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < columns.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            workbook.write(out);
+            byte[] bytes = out.toByteArray();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDispositionFormData("attachment", "istifadeciler.xlsx");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(bytes);
+        }
+    }
+
+    @GetMapping("/users/{id}")
+    public UserDto getUser(@PathVariable Long id) {
+        return toUserDto(userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found")));
+    }
+
+    @PutMapping("/users/{id}")
+    public UserDto updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest req) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (req.firstName() != null) u.setFirstName(req.firstName());
+        if (req.lastName()  != null) u.setLastName(req.lastName());
+        if (req.phone()     != null) u.setPhone(req.phone());
+        if (req.role()      != null) u.setRole(req.role());
+        if (req.emailVerified() != null) u.setEmailVerified(req.emailVerified());
+        if (req.active()    != null) u.setActive(req.active());
+        return toUserDto(userRepository.save(u));
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Also delete associated psychologist profile if exists
+        psychologistRepository.findByEmail(u.getEmail()).ifPresent(p -> {
+            psychologistRepository.delete(p);
+        });
+
+        userRepository.delete(u);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/users/{id}/toggle-active")
+    public UserDto toggleActive(@PathVariable Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        u.setActive(!u.isActive());
+        User saved = userRepository.save(u);
+
+        // Also toggle psychologist profile if exists
+        psychologistRepository.findByEmail(u.getEmail()).ifPresent(p -> {
+            p.setActive(saved.isActive());
+            psychologistRepository.save(p);
+        });
+
+        return toUserDto(saved);
+    }
+
+    @GetMapping("/users/{id}/psychologist-profile")
+    public ResponseEntity<PsychologistDto> getUserPsychologistProfile(@PathVariable Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        return psychologistRepository.findByEmail(u.getEmail())
+            .map(p -> ResponseEntity.ok(psychologistService.findById(p.getId())))
+            .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @GetMapping("/users/{id}/application")
+    public ResponseEntity<PsychologistApplicationDto> getUserApplication(@PathVariable Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        try {
+            return ResponseEntity.ok(psychologistApplicationService.findByEmail(u.getEmail()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/users/{id}/psychologist-profile")
+    public ResponseEntity<PsychologistDto> updateUserPsychologistProfile(
+            @PathVariable Long id,
+            @RequestBody PsychologistRequest req) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+            
+        return psychologistRepository.findByEmail(u.getEmail())
+            .map(p -> ResponseEntity.ok(psychologistService.update(p.getId(), req)))
+            .orElseGet(() -> ResponseEntity.ok(psychologistService.create(req)));
+    }
+
+    @PostMapping("/users/{id}/add-to-psychologists")
+    public ResponseEntity<Map<String, Object>> addToPsychologists(@PathVariable Long id) {
+        User u = userRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!"PSYCHOLOGIST".equals(u.getRole())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "İstifadəçi psixoloq deyil"));
+        }
+        if (psychologistRepository.existsByEmail(u.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Bu istifadəçi artıq psixoloqlar siyahısındadır"));
+        }
+
+        String name = ((u.getFirstName() != null ? u.getFirstName() : "") + " "
+                     + (u.getLastName()  != null ? u.getLastName()  : "")).trim();
+        if (name.isEmpty()) name = u.getEmail();
+
+        com.fanus.entity.PsychologistApplication app = psychologistApplicationRepository.findByEmail(u.getEmail()).orElse(null);
+        
+        com.fanus.dto.PsychologistRequest req;
+        if (app != null) {
+            java.util.List<String> specs = new java.util.ArrayList<>();
+            if (app.getSpecializations() != null) {
+                for (String s : app.getSpecializations().split(",")) {
+                    if (!s.trim().isEmpty()) specs.add(s.trim());
+                }
+            }
+            
+            req = new com.fanus.dto.PsychologistRequest(
+                name, "Psixoloq", specs, 
+                app.getExperienceYears() != null ? app.getExperienceYears() + " il" : "—", 
+                "0", "0.0",
+                app.getPhotoUrl(), app.getBio(), u.getPhone(), u.getEmail(),
+                app.getLanguages(), app.getSessionTypes(), app.getActivityFormat(), 
+                app.getUniversity(), app.getDegree(), app.getGraduationYear(),
+                "#2f5283", "#eef1f7", 0, true
+            );
+        } else {
+            req = new com.fanus.dto.PsychologistRequest(
+                name, "Psixoloq", java.util.List.of(), "—", "0", "0.0",
+                null, null, u.getPhone(), u.getEmail(),
+                null, null, null, null, null, null,
+                "#2f5283", "#eef1f7", 0, true
+            );
+        }
+        psychologistService.create(req);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(Map.of("message", name + " psixoloqlar siyahısına əlavə edildi"));
+    }
+
+    private UserDto toUserDto(User u) {
+        boolean inList = "PSYCHOLOGIST".equals(u.getRole()) && psychologistRepository.existsByEmail(u.getEmail());
+        return new UserDto(u.getId(), u.getEmail(), u.getRole(),
+            u.getFirstName(), u.getLastName(), u.getPhone(),
+            u.isEmailVerified(), inList, u.isActive(), u.getLastLogin(), u.getCreatedAt());
     }
 }

@@ -42,6 +42,29 @@ public class Psychologist {
     @Column(name = "photo_url")
     private String photoUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    private String phone;
+
+    private String email;
+
+    @Column(columnDefinition = "TEXT")
+    private String languages;
+
+    @Column(name = "session_types", columnDefinition = "TEXT")
+    private String sessionTypes;
+
+    @Column(name = "activity_format")
+    private String activityFormat;
+
+    private String university;
+
+    private String degree;
+
+    @Column(name = "graduation_year")
+    private String graduationYear;
+
     @Column(name = "accent_color", nullable = false)
     private String accentColor;
 

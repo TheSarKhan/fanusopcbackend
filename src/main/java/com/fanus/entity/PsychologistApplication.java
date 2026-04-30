@@ -65,6 +65,9 @@ public class PsychologistApplication {
     @Column(name = "certificate_file_urls", columnDefinition = "TEXT")
     private String certificateFileUrls;
 
+    @Column(name = "photo_url")
+    private String photoUrl;
+
     @Column(nullable = false)
     private String status = "PENDING";
 

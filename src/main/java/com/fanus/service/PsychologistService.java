@@ -37,6 +37,10 @@ public class PsychologistService {
             .specializations(req.specializations())
             .experience(req.experience()).sessionsCount(req.sessionsCount())
             .rating(req.rating()).photoUrl(req.photoUrl())
+            .bio(req.bio()).phone(req.phone()).email(req.email())
+            .languages(req.languages()).sessionTypes(req.sessionTypes())
+            .activityFormat(req.activityFormat())
+            .university(req.university()).degree(req.degree()).graduationYear(req.graduationYear())
             .accentColor(req.accentColor()).bgColor(req.bgColor())
             .displayOrder(req.displayOrder()).active(req.active())
             .build();
@@ -50,6 +54,10 @@ public class PsychologistService {
         p.setSpecializations(req.specializations());
         p.setExperience(req.experience()); p.setSessionsCount(req.sessionsCount());
         p.setRating(req.rating()); p.setPhotoUrl(req.photoUrl());
+        p.setBio(req.bio()); p.setPhone(req.phone()); p.setEmail(req.email());
+        p.setLanguages(req.languages()); p.setSessionTypes(req.sessionTypes());
+        p.setActivityFormat(req.activityFormat());
+        p.setUniversity(req.university()); p.setDegree(req.degree()); p.setGraduationYear(req.graduationYear());
         p.setAccentColor(req.accentColor()); p.setBgColor(req.bgColor());
         p.setDisplayOrder(req.displayOrder()); p.setActive(req.active());
         return toDto(repo.save(p));
@@ -61,9 +69,16 @@ public class PsychologistService {
         repo.deleteById(id);
     }
 
+    public boolean existsByEmail(String email) {
+        return repo.existsByEmail(email);
+    }
+
     private PsychologistDto toDto(Psychologist p) {
         return new PsychologistDto(p.getId(), p.getName(), p.getTitle(), p.getSpecializations(),
             p.getExperience(), p.getSessionsCount(), p.getRating(), p.getPhotoUrl(),
+            p.getBio(), p.getPhone(), p.getEmail(),
+            p.getLanguages(), p.getSessionTypes(), p.getActivityFormat(),
+            p.getUniversity(), p.getDegree(), p.getGraduationYear(),
             p.getAccentColor(), p.getBgColor(), p.getDisplayOrder(), p.isActive());
     }
 }

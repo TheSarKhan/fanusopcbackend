@@ -58,6 +58,11 @@ public class AuthController {
         User user = userRepository.findByEmail(req.email())
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        if (!user.isActive()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Hesabınız deaktiv edilmişdir. Ətraflı məlumat üçün administrasiya ilə əlaqə saxlayın."));
+        }
+
         if ("PATIENT".equals(user.getRole()) && !user.isEmailVerified()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(Map.of("error", "Email ünvanınız hələ təsdiqlənməyib. Emailinizi yoxlayın."));
@@ -132,7 +137,8 @@ public class AuthController {
             @RequestParam(value = "bio", required = false) String bio,
             @RequestParam(value = "certifications", required = false) List<String> certifications,
             @RequestParam("diplomaFile") MultipartFile diplomaFile,
-            @RequestParam(value = "certificateFiles", required = false) List<MultipartFile> certificateFiles) {
+            @RequestParam(value = "certificateFiles", required = false) List<MultipartFile> certificateFiles,
+            @RequestParam(value = "photoFile", required = false) MultipartFile photoFile) {
 
         if (diplomaFile == null || diplomaFile.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -148,7 +154,7 @@ public class AuthController {
             firstName, lastName, email, phone, password,
             university, degree, graduationYear,
             specializations, sessionTypes, experienceYears, bio, certifications,
-            diplomaFile, languages, activityFormat, certificateFiles
+            diplomaFile, languages, activityFormat, certificateFiles, photoFile
         );
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -244,6 +250,11 @@ public class AuthController {
 
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        if (!user.isActive()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Hesab deaktivdir"));
+        }
 
         String newAccess = tokenProvider.generateAccessToken(user.getId(), user.getEmail(), user.getRole());
         refreshTokenService.revoke(userId, tokenId);

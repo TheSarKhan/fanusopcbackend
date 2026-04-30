@@ -39,6 +39,11 @@ public class PsychologistApplicationService {
         return repository.findAllByOrderByCreatedAtDesc().stream().map(this::toDto).toList();
     }
 
+    public PsychologistApplicationDto findByEmail(String email) {
+        return repository.findByEmail(email).map(this::toDto)
+            .orElseThrow(() -> new ResourceNotFoundException("Application not found for email: " + email));
+    }
+
     @Transactional
     public PsychologistApplicationDto approve(Long id, String adminNote) {
         PsychologistApplication app = repository.findById(id)
@@ -58,25 +63,6 @@ public class PsychologistApplicationService {
             .emailVerified(true)
             .build();
         userRepository.save(user);
-
-        List<String> specs = app.getSpecializations() != null
-            ? List.of(app.getSpecializations().split(",")).stream().map(String::trim).filter(s -> !s.isEmpty()).toList()
-            : List.of();
-        String experience = app.getExperienceYears() != null ? app.getExperienceYears() : "0";
-
-        Psychologist profile = Psychologist.builder()
-            .name(app.getFirstName() + " " + app.getLastName())
-            .title("Psixoloq")
-            .specializations(specs)
-            .experience(experience)
-            .sessionsCount("0")
-            .rating("0.0")
-            .accentColor("#2f5283")
-            .bgColor("#eef1f7")
-            .displayOrder(0)
-            .active(true)
-            .build();
-        psychologistRepository.save(profile);
 
         app.setStatus("APPROVED");
         app.setAdminNote(adminNote);
@@ -122,7 +108,8 @@ public class PsychologistApplicationService {
             a.getSpecializations(), a.getSessionTypes(), a.getExperienceYears(),
             a.getBio(), a.getCertifications(), a.getLanguages(), a.getActivityFormat(),
             a.getDiplomaFileUrl(), a.getCertificateFileUrls(),
-            a.getStatus(), a.getAdminNote(), a.getCreatedAt(), a.getReviewedAt()
+            a.getStatus(), a.getAdminNote(), a.getCreatedAt(), a.getReviewedAt(),
+            a.getPhotoUrl()
         );
     }
 
@@ -147,7 +134,8 @@ public class PsychologistApplicationService {
             MultipartFile diplomaFile,
             List<String> languages,
             String activityFormat,
-            List<MultipartFile> certificateFiles
+            List<MultipartFile> certificateFiles,
+            MultipartFile photoFile
     ) {
         String diplomaFileUrl = null;
         if (diplomaFile != null && !diplomaFile.isEmpty()) {
@@ -161,6 +149,11 @@ public class PsychologistApplicationService {
                     certUrls.add(fileStorageService.store(f));
                 }
             }
+        }
+
+        String photoUrl = null;
+        if (photoFile != null && !photoFile.isEmpty()) {
+            photoUrl = fileStorageService.store(photoFile);
         }
 
         PsychologistApplication app = PsychologistApplication.builder()
@@ -181,6 +174,7 @@ public class PsychologistApplicationService {
             .languages(languages != null ? String.join(",", languages) : null)
             .activityFormat(activityFormat)
             .certificateFileUrls(!certUrls.isEmpty() ? String.join(",", certUrls) : null)
+            .photoUrl(photoUrl)
             .status("PENDING")
             .build();
 
