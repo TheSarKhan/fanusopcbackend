@@ -40,7 +40,7 @@ jobs:
             systemctl restart fanusopc-backend
             
             echo "⏳ Servisin ayağa qalxması gözlənilir..."
-            sleep 15
+            sleep 40
 
             echo "📋 Container statusu yoxlanılır..."
             docker compose ps
