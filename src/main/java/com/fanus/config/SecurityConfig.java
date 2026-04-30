@@ -67,22 +67,23 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
         
-        if (allowedOriginPattern != null && !allowedOriginPattern.isBlank()) {
-            for (String p : allowedOriginPattern.split(",")) {
-                config.addAllowedOriginPattern(p.trim());
-            }
-        }
+        // Origins
+        config.setAllowedOrigins(List.of(
+            "https://fanusopc.starsoft.az",
+            "https://starsoft.az",
+            "http://localhost:3000",
+            "http://localhost:3001"
+        ));
         
-        // Also allow starsoft.az domains and localhost for dev
-        config.addAllowedOrigin("https://fanusopc.starsoft.az");
+        // Patterns for subdomains (optional but safe)
         config.addAllowedOriginPattern("https://*.starsoft.az");
-        config.addAllowedOriginPattern("https://starsoft.az");
         config.addAllowedOriginPattern("http://localhost:*");
-        config.addAllowedOriginPattern("http://*.localhost:*");
-        config.addAllowedOriginPattern("http://*.lvh.me:*");
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L); // Cache preflight for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
