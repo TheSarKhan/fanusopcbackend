@@ -35,6 +35,8 @@ public class AdminController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final DashboardService dashboardService;
+    private final ReportsService reportsService;
 
     // ─── Operators ────────────────────────────────────────────────────────────
     @PostMapping("/operators")
@@ -219,13 +221,39 @@ public class AdminController {
     // ─── Dashboard counts ─────────────────────────────────────────────────────
     @GetMapping("/dashboard")
     public Map<String, Object> dashboard() {
+        long pendingAppointments = appointmentService.findAll().stream()
+            .filter(a -> "PENDING".equals(a.status())).count();
         return Map.of(
             "psychologists", psychologistService.findAll().size(),
             "announcements", announcementService.findAll().size(),
             "blogPosts", blogPostService.findAll().size(),
             "faqs", faqService.findAll().size(),
             "testimonials", testimonialService.findAll().size(),
-            "appointments", appointmentService.findAll().size()
+            "appointments", appointmentService.findAll().size(),
+            "pendingAppointments", pendingAppointments
+        );
+    }
+
+    // ─── Rich dashboard metrics ──────────────────────────────────────────────
+    @GetMapping("/dashboard/metrics")
+    public DashboardDto dashboardMetrics() {
+        return dashboardService.build();
+    }
+
+    // ─── Reports / analytics ─────────────────────────────────────────────────
+    @GetMapping("/reports")
+    public ReportsDto reports() {
+        return reportsService.build();
+    }
+
+    // ─── Users (lookup for activity feed / settings) ─────────────────────────
+    @GetMapping("/users/summary")
+    public Map<String, Long> usersSummary() {
+        return Map.of(
+            "PATIENT", userRepository.countByRole("PATIENT"),
+            "PSYCHOLOGIST", userRepository.countByRole("PSYCHOLOGIST"),
+            "OPERATOR", userRepository.countByRole("OPERATOR"),
+            "ADMIN", userRepository.countByRole("ADMIN")
         );
     }
 }

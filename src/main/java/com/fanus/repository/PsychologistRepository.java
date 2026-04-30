@@ -7,4 +7,6 @@ import java.util.List;
 public interface PsychologistRepository extends JpaRepository<Psychologist, Long> {
     List<Psychologist> findByActiveTrueOrderByDisplayOrderAsc();
     List<Psychologist> findAllByOrderByIdAsc();
+
+    long countByActiveTrue();
 }
