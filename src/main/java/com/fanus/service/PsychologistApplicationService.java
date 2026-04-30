@@ -62,7 +62,7 @@ public class PsychologistApplicationService {
         List<String> specs = app.getSpecializations() != null
             ? List.of(app.getSpecializations().split(",")).stream().map(String::trim).filter(s -> !s.isEmpty()).toList()
             : List.of();
-        String experience = app.getExperienceYears() != null ? app.getExperienceYears() + " il" : "0 il";
+        String experience = app.getExperienceYears() != null ? app.getExperienceYears() : "0";
 
         Psychologist profile = Psychologist.builder()
             .name(app.getFirstName() + " " + app.getLastName())
