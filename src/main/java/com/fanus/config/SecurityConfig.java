@@ -72,11 +72,13 @@ public class SecurityConfig {
             "https://fanusopc.starsoft.az",
             "https://starsoft.az",
             "http://localhost:3000",
-            "http://localhost:3001"
+            "http://localhost:3001",
+            "https://khansoft.az"
         ));
         
         // Patterns for subdomains (optional but safe)
         config.addAllowedOriginPattern("https://*.starsoft.az");
+        config.addAllowedOriginPattern("https://*.khansoft.az");
         config.addAllowedOriginPattern("http://localhost:*");
         config.addAllowedOriginPattern("http://*.localhost:*");
         
