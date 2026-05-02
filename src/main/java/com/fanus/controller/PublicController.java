@@ -20,6 +20,7 @@ public class PublicController {
     private final StatService statService;
     private final AnnouncementService announcementService;
     private final BlogPostService blogPostService;
+    private final BlogCategoryService blogCategoryService;
     private final FaqService faqService;
     private final TestimonialService testimonialService;
     private final SiteConfigService siteConfigService;
@@ -62,6 +63,11 @@ public class PublicController {
     @GetMapping("/blog-posts/{slug}")
     public BlogPostDto getBlogPost(@PathVariable String slug) {
         return blogPostService.findBySlug(slug);
+    }
+
+    @GetMapping("/blog-categories")
+    public List<BlogCategoryDto> getBlogCategories() {
+        return blogCategoryService.findActive();
     }
 
     // FAQs

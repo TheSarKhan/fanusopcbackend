@@ -70,7 +70,7 @@ public class ReportsService {
         // Top converting articles — derived from blog posts with synthetic conversion
         List<ReportsDto.TopConvertingArticle> top = new ArrayList<>();
         int rank = 0;
-        for (BlogPost p : blogRepo.findByActiveTrueOrderByFeaturedDescPublishedDateDesc().stream().limit(5).toList()) {
+        for (BlogPost p : blogRepo.findByActiveTrueAndStatusOrderByFeaturedDescPublishedDateDesc("PUBLISHED").stream().limit(5).toList()) {
             long postViews = 12_000L - rank * 1700L + Math.abs(p.getId().hashCode() % 800);
             long reqs = (long) Math.round(postViews * (0.05 - rank * 0.005));
             double cr = postViews > 0 ? Math.round((reqs * 1000.0 / postViews)) / 10.0 : 0.0;

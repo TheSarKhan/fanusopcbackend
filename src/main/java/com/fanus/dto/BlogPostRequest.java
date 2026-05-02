@@ -9,11 +9,13 @@ public record BlogPostRequest(
     @NotBlank String categoryColor,
     @NotBlank String categoryBg,
     @NotBlank String title,
-    @NotBlank String excerpt,
-    int readTimeMinutes,
+    String excerpt,
+    String content,
+    String coverImageUrl,
     @NotNull LocalDate publishedDate,
-    @NotBlank String emoji,
+    String emoji,
     @NotBlank String slug,
     boolean featured,
-    boolean active
+    boolean active,
+    String status
 ) {}

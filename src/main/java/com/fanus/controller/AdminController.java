@@ -1,9 +1,14 @@
 package com.fanus.controller;
 
 import com.fanus.dto.*;
+import com.fanus.service.BlogCategoryService;
+import com.fanus.entity.ArticleAttachment;
+import com.fanus.entity.BlogPost;
 import com.fanus.entity.Psychologist;
 import com.fanus.entity.User;
 import com.fanus.exception.ResourceNotFoundException;
+import com.fanus.repository.ArticleAttachmentRepository;
+import com.fanus.repository.BlogPostRepository;
 import com.fanus.repository.UserRepository;
 import com.fanus.service.*;
 import jakarta.validation.Valid;
@@ -42,6 +47,9 @@ public class AdminController {
     private final StatService statService;
     private final AnnouncementService announcementService;
     private final BlogPostService blogPostService;
+    private final BlogCategoryService blogCategoryService;
+    private final BlogPostRepository blogPostRepository;
+    private final ArticleAttachmentRepository articleAttachmentRepository;
     private final FaqService faqService;
     private final TestimonialService testimonialService;
     private final SiteConfigService siteConfigService;
@@ -154,6 +162,26 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    // ─── Blog Categories ─────────────────────────────────────────────────────
+    @GetMapping("/blog-categories")
+    public List<BlogCategoryDto> allCategories() { return blogCategoryService.findAll(); }
+
+    @PostMapping("/blog-categories")
+    public ResponseEntity<BlogCategoryDto> createCategory(@Valid @RequestBody BlogCategoryRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(blogCategoryService.create(req));
+    }
+
+    @PutMapping("/blog-categories/{id}")
+    public BlogCategoryDto updateCategory(@PathVariable Long id, @Valid @RequestBody BlogCategoryRequest req) {
+        return blogCategoryService.update(id, req);
+    }
+
+    @DeleteMapping("/blog-categories/{id}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+        blogCategoryService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── Blog Posts ───────────────────────────────────────────────────────────
     @GetMapping("/blog-posts")
     public List<BlogPostDto> allBlogPosts() { return blogPostService.findAll(); }
@@ -172,6 +200,44 @@ public class AdminController {
     public ResponseEntity<Void> deleteBlogPost(@PathVariable Long id) {
         blogPostService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/blog-posts/{id}/attachments")
+    public ResponseEntity<ArticleAttachmentDto> addAttachment(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "displayOrder", defaultValue = "0") int displayOrder) {
+        BlogPost post = blogPostRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Article not found: " + id));
+        String url = fileStorageService.store(file);
+        String fileType = detectFileType(file.getContentType());
+        ArticleAttachment att = ArticleAttachment.builder()
+            .article(post)
+            .fileUrl(url)
+            .fileName(file.getOriginalFilename() != null ? file.getOriginalFilename() : "file")
+            .fileType(fileType)
+            .fileSizeBytes(file.getSize())
+            .displayOrder(displayOrder)
+            .build();
+        att = articleAttachmentRepository.save(att);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+            new ArticleAttachmentDto(att.getId(), att.getFileUrl(), att.getFileName(),
+                att.getFileType(), att.getFileSizeBytes(), att.getDisplayOrder()));
+    }
+
+    @DeleteMapping("/blog-posts/{id}/attachments/{attachmentId}")
+    public ResponseEntity<Void> deleteAttachment(
+            @PathVariable Long id,
+            @PathVariable Long attachmentId) {
+        articleAttachmentRepository.deleteByArticleIdAndId(id, attachmentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    private String detectFileType(String contentType) {
+        if (contentType == null) return "DOCUMENT";
+        if (contentType.startsWith("image/")) return "IMAGE";
+        if (contentType.startsWith("video/")) return "VIDEO";
+        return "DOCUMENT";
     }
 
     // ─── FAQs ─────────────────────────────────────────────────────────────────

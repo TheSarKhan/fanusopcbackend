@@ -10,6 +10,8 @@ import com.fanus.security.RefreshTokenService;
 import com.fanus.service.EmailService;
 import com.fanus.service.PatientService;
 import com.fanus.service.PsychologistApplicationService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,6 +50,9 @@ public class AuthController {
 
     @Value("${app.cookie.secure:false}")
     private boolean cookieSecure;
+
+    @Value("${app.jwt.refresh-token-expiry-seconds}")
+    private long refreshTokenExpirySeconds;
 
     // ─── Login ────────────────────────────────────────────────────────────────
 
@@ -230,10 +236,16 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<?> refresh(
-            @Valid @RequestBody RefreshRequest req,
+            @RequestBody(required = false) RefreshRequest req,
+            HttpServletRequest request,
             HttpServletResponse response) {
 
-        String[] parts = req.refreshToken().split(":");
+        String rawToken = resolveRefreshToken(req, request);
+        if (rawToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Refresh token not provided"));
+        }
+
+        String[] parts = rawToken.split(":");
         if (parts.length != 2)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid refresh token"));
 
@@ -273,10 +285,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(
             @RequestBody(required = false) RefreshRequest req,
+            HttpServletRequest request,
             HttpServletResponse response) {
 
-        if (req != null) {
-            String[] parts = req.refreshToken().split(":");
+        String rawToken = resolveRefreshToken(req, request);
+        if (rawToken != null) {
+            String[] parts = rawToken.split(":");
             if (parts.length == 2) {
                 try {
                     Long userId = Long.parseLong(parts[0]);
@@ -295,7 +309,22 @@ public class AuthController {
         response.addHeader("Set-Cookie", buildCookie("accessToken", accessToken,
             (int) (tokenProvider.getAccessTokenExpiryMs() / 1000)).toString());
         response.addHeader("Set-Cookie", buildCookie("refreshToken", refreshToken,
-            7 * 24 * 3600).toString());
+            (int) refreshTokenExpirySeconds).toString());
+    }
+
+    private String resolveRefreshToken(RefreshRequest req, HttpServletRequest request) {
+        if (req != null && req.refreshToken() != null && !req.refreshToken().isBlank()) {
+            return req.refreshToken();
+        }
+        if (request.getCookies() != null) {
+            return Arrays.stream(request.getCookies())
+                .filter(c -> "refreshToken".equals(c.getName()))
+                .map(Cookie::getValue)
+                .filter(v -> v != null && !v.isBlank())
+                .findFirst()
+                .orElse(null);
+        }
+        return null;
     }
 
     private void clearAuthCookies(HttpServletResponse response) {

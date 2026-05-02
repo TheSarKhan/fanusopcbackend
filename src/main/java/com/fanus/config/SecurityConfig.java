@@ -78,6 +78,7 @@ public class SecurityConfig {
         // Patterns for subdomains (optional but safe)
         config.addAllowedOriginPattern("https://*.starsoft.az");
         config.addAllowedOriginPattern("http://localhost:*");
+        config.addAllowedOriginPattern("http://*.localhost:*");
         
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "Origin"));

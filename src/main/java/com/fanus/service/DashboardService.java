@@ -163,7 +163,7 @@ public class DashboardService {
     }
 
     private List<DashboardDto.TopArticle> buildTopArticles() {
-        List<BlogPost> posts = blogRepo.findByActiveTrueOrderByFeaturedDescPublishedDateDesc();
+        List<BlogPost> posts = blogRepo.findByActiveTrueAndStatusOrderByFeaturedDescPublishedDateDesc("PUBLISHED");
         List<DashboardDto.TopArticle> out = new ArrayList<>();
         int rank = 1;
         // Synthetic view counts seeded from id so they stay stable between requests.
