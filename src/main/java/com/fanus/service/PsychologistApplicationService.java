@@ -35,6 +35,15 @@ public class PsychologistApplicationService {
     @Value("${app.email.admin}")
     private String adminEmail;
 
+    private static final String[][] COLOR_PALETTE = {
+        {"#4A9B7F", "#E8F5F0"},
+        {"#5A4FC8", "#EEECFB"},
+        {"#2e86c1", "#E3F0FB"},
+        {"#c0392b", "#FDECEA"},
+        {"#d35400", "#FEF0E7"},
+        {"#1a5276", "#E8EEF6"},
+    };
+
     public List<PsychologistApplicationDto> findAll() {
         return repository.findAllByOrderByCreatedAtDesc().stream().map(this::toDto).toList();
     }
@@ -63,6 +72,36 @@ public class PsychologistApplicationService {
             .emailVerified(true)
             .build();
         userRepository.save(user);
+
+        int psyCount = (int) psychologistRepository.count();
+        String[] colors = COLOR_PALETTE[psyCount % COLOR_PALETTE.length];
+        String experience = (app.getExperienceYears() != null && !app.getExperienceYears().isBlank())
+            ? (app.getExperienceYears().contains("il") ? app.getExperienceYears() : app.getExperienceYears() + " il")
+            : "0 il";
+
+        Psychologist psychologist = Psychologist.builder()
+            .name(app.getFirstName() + " " + app.getLastName())
+            .title("Psixoloq")
+            .specializations(parseCommaList(app.getSpecializations()))
+            .experience(experience)
+            .sessionsCount("0")
+            .rating("5.0")
+            .photoUrl(app.getPhotoUrl())
+            .bio(app.getBio())
+            .phone(app.getPhone())
+            .email(app.getEmail())
+            .languages(app.getLanguages())
+            .sessionTypes(app.getSessionTypes())
+            .activityFormat(app.getActivityFormat())
+            .university(app.getUniversity())
+            .degree(app.getDegree())
+            .graduationYear(app.getGraduationYear())
+            .accentColor(colors[0])
+            .bgColor(colors[1])
+            .displayOrder(psyCount + 1)
+            .active(true)
+            .build();
+        psychologistRepository.save(psychologist);
 
         app.setStatus("APPROVED");
         app.setAdminNote(adminNote);
@@ -111,6 +150,16 @@ public class PsychologistApplicationService {
             a.getStatus(), a.getAdminNote(), a.getCreatedAt(), a.getReviewedAt(),
             a.getPhotoUrl()
         );
+    }
+
+    private static List<String> parseCommaList(String value) {
+        if (value == null || value.isBlank()) return new ArrayList<>();
+        List<String> result = new ArrayList<>();
+        for (String s : value.split(",")) {
+            s = s.trim();
+            if (!s.isEmpty()) result.add(s);
+        }
+        return result;
     }
 
     public boolean emailExists(String email) {
