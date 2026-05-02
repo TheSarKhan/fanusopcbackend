@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailTemplateService {
 
-    @Value("${app.frontend.url:https://fanus.com}")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
 
     public String buildVerificationEmail(String firstName, String token) {
@@ -48,7 +48,7 @@ public class EmailTemplateService {
     }
 
     public String buildOperatorCredentialsEmail(String firstName, String email, String tempPassword) {
-        String link = "https://operator.fanus.com/login";
+        String link = frontendUrl + "/login";
         return wrap(
             "Operator Hesabınız Yaradıldı",
             "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
@@ -65,7 +65,7 @@ public class EmailTemplateService {
     }
 
     public String buildPsychologistApplicationReceived(String firstName) {
-        String link = frontendUrl + "/psychologist/status";
+        String link = frontendUrl + "/psycholog/status";
         return wrap(
             "Müraciətiniz Alındı",
             "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
@@ -78,7 +78,7 @@ public class EmailTemplateService {
     }
 
     public String buildPsychologistApplicationAdminNotification(String firstName, String lastName, String email) {
-        String link = "https://admin.fanusopc.com/applications";
+        String link = frontendUrl + "/admin/applications";
         return wrap(
             "Yeni Psixoloq Müraciəti",
             "<p>Yeni psixoloq müraciəti daxil oldu:</p>" +
@@ -93,7 +93,7 @@ public class EmailTemplateService {
     }
 
     public String buildPsychologistApproved(String firstName) {
-        String link = frontendUrl + "/psychologist/dashboard";
+        String link = frontendUrl + "/psycholog/dashboard";
         return wrap(
             "Müraciətiniz Təsdiqləndi!",
             "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
