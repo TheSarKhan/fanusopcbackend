@@ -23,5 +23,7 @@ public record PsychologistDto(
     String accentColor,
     String bgColor,
     int displayOrder,
-    boolean active
+    boolean active,
+    int defaultSessionMinutes,
+    Long userId
 ) {}

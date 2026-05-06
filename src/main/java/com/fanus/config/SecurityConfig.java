@@ -53,7 +53,7 @@ public class SecurityConfig {
                 .requestMatchers("/uploads/**").permitAll()
                 // Role-specific endpoints
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers("/api/operator/**").hasRole("OPERATOR")
+                .requestMatchers("/api/operator/**").hasAnyRole("OPERATOR", "ADMIN")
                 .requestMatchers("/api/psychologist/**").hasRole("PSYCHOLOGIST")
                 .requestMatchers("/api/patient/**").hasRole("PATIENT")
                 .anyRequest().authenticated()

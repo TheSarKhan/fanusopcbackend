@@ -22,4 +22,17 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
            "FROM Appointment a WHERE a.createdAt >= :since " +
            "GROUP BY FUNCTION('DATE', a.createdAt), a.status")
     List<Object[]> dailyFlowByStatus(@Param("since") LocalDateTime since);
+
+    List<Appointment> findByPatientIdOrderByCreatedAtDesc(Long patientId);
+
+    List<Appointment> findByPsychologistIdOrderByStartAtAsc(Long psychologistId);
+
+    @Query("SELECT a FROM Appointment a WHERE a.psychologist.id = :psychologistId " +
+           "AND a.status IN ('ASSIGNED','CONFIRMED') " +
+           "AND a.startAt IS NOT NULL AND a.endAt IS NOT NULL " +
+           "AND a.startAt < :rangeEnd AND a.endAt > :rangeStart")
+    List<Appointment> findActiveBookingsInRange(
+        @Param("psychologistId") Long psychologistId,
+        @Param("rangeStart") LocalDateTime rangeStart,
+        @Param("rangeEnd") LocalDateTime rangeEnd);
 }

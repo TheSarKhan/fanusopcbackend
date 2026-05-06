@@ -13,4 +13,5 @@ public interface PsychologistRepository extends JpaRepository<Psychologist, Long
 
     boolean existsByEmail(String email);
     Optional<Psychologist> findByEmail(String email);
+    Optional<Psychologist> findByUserId(Long userId);
 }

@@ -3,11 +3,25 @@ package com.fanus.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 @Service
 public class EmailTemplateService {
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    private static final DateTimeFormatter DT_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.forLanguageTag("az"));
+
+    private static String fmt(LocalDateTime dt) {
+        return dt == null ? "—" : dt.format(DT_FMT);
+    }
+
+    private static String safe(String v) {
+        return v == null || v.isBlank() ? "—" : v;
+    }
 
     public String buildVerificationEmail(String firstName, String token) {
         String link = frontendUrl + "/verify?token=" + token;
@@ -119,6 +133,101 @@ public class EmailTemplateService {
             "<p>Ətraflı məlumat üçün bizimlə əlaqə saxlaya bilərsiniz.</p>",
             link, "Bizimlə Əlaqə",
             "<p style='color:#6B7280;font-size:13px;'>Gələcəkdə yenidən müraciət edə bilərsiniz.</p>"
+        );
+    }
+
+    // ─── Appointment lifecycle templates ─────────────────────────────────────
+
+    public String buildAppointmentReceived(String firstName, String psychologistName, LocalDateTime requestedStartAt) {
+        String link = frontendUrl + "/patient/appointments";
+        return wrap(
+            "Müraciətiniz Qəbul Edildi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Randevu müraciətiniz qəbul edildi. Operator komandamız tezliklə baxıb sizə geri dönəcək.</p>" +
+            "<div style='background:#F3F4F6;border-radius:8px;padding:16px;margin:16px 0;'>" +
+            "<p style='margin:4px 0;'><strong>Psixoloq:</strong> " + safe(psychologistName) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Üstün tutulan vaxt:</strong> " + fmt(requestedStartAt) + "</p>" +
+            "</div>",
+            link, "Randevularıma bax",
+            "<p style='color:#6B7280;font-size:13px;'>Adətən cavab müddəti 2–4 saatdır.</p>"
+        );
+    }
+
+    public String buildAppointmentAssigned(String firstName, String psychologistName, LocalDateTime startAt, String sessionFormat) {
+        String link = frontendUrl + "/patient/appointments";
+        String formatLabel = "ONLINE".equals(sessionFormat) ? "Online" : "IN_PERSON".equals(sessionFormat) ? "Üzbəüz" : "—";
+        return wrap(
+            "Randevunuz Təyin Edildi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Operator randevunuza baxıb psixoloq təyin etdi:</p>" +
+            "<div style='background:#F3F4F6;border-radius:8px;padding:16px;margin:16px 0;'>" +
+            "<p style='margin:4px 0;'><strong>Psixoloq:</strong> " + safe(psychologistName) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Tarix:</strong> " + fmt(startAt) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Format:</strong> " + formatLabel + "</p>" +
+            "</div>" +
+            "<p>Psixoloq vaxtı təsdiqlədikdən sonra sizə yenidən bildiriş gələcək.</p>",
+            link, "Detallara bax", ""
+        );
+    }
+
+    public String buildAppointmentAssignedPsychologist(String firstName, String patientName, LocalDateTime startAt, String note) {
+        String link = frontendUrl + "/psycholog/appointments";
+        return wrap(
+            "Yeni Randevu Sizə Təyin Edildi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Operator sizə yeni randevu təyin etdi:</p>" +
+            "<div style='background:#F3F4F6;border-radius:8px;padding:16px;margin:16px 0;'>" +
+            "<p style='margin:4px 0;'><strong>Müştəri:</strong> " + safe(patientName) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Tarix:</strong> " + fmt(startAt) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Qeyd:</strong> " + safe(note) + "</p>" +
+            "</div>" +
+            "<p>Panelə daxil olaraq randevunu təsdiqləyə və ya rədd edə bilərsiniz.</p>",
+            link, "Panelə keç", ""
+        );
+    }
+
+    public String buildAppointmentConfirmed(String firstName, String psychologistName, LocalDateTime startAt) {
+        String link = frontendUrl + "/patient/appointments";
+        return wrap(
+            "Randevunuz Təsdiqləndi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Psixoloq " + safe(psychologistName) + " randevunuzu təsdiqlədi.</p>" +
+            "<div style='background:#ECFDF5;border-left:4px solid #10B981;border-radius:4px;padding:12px 16px;margin:16px 0;'>" +
+            "<p style='margin:0;color:#065F46;'><strong>Tarix:</strong> " + fmt(startAt) + "</p>" +
+            "</div>",
+            link, "Detallara bax",
+            "<p style='color:#6B7280;font-size:13px;'>Seansa 5 dəqiqə əvvəl hazır olun.</p>"
+        );
+    }
+
+    public String buildAppointmentRejected(String firstName, String adminNote) {
+        String link = frontendUrl + "/patient/appointments";
+        String noteHtml = (adminNote != null && !adminNote.isBlank())
+            ? "<div style='background:#FEF2F2;border-left:4px solid #EF4444;border-radius:4px;padding:12px 16px;margin:16px 0;'>" +
+              "<p style='margin:0;color:#991B1B;'><strong>Qeyd:</strong> " + adminNote + "</p>" +
+              "</div>"
+            : "";
+        return wrap(
+            "Randevunuza Yenidən Baxılır",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Təyin olunan psixoloq randevunuzu qəbul edə bilmədi. Operator komandamız sizə uyğun başqa psixoloq təyin edəcək.</p>" +
+            noteHtml,
+            link, "Randevularıma bax", ""
+        );
+    }
+
+    public String buildAppointmentCancelled(String firstName, String otherParty, LocalDateTime startAt, String cancelledBy) {
+        String link = frontendUrl + "/patient/appointments";
+        String byLabel = "PATIENT".equals(cancelledBy) ? "müştəri tərəfindən" : "operator tərəfindən";
+        return wrap(
+            "Randevu Ləğv Edildi",
+            "<p>Salam, <strong>" + firstName + "</strong>!</p>" +
+            "<p>Aşağıdakı randevu " + byLabel + " ləğv edildi:</p>" +
+            "<div style='background:#F3F4F6;border-radius:8px;padding:16px;margin:16px 0;'>" +
+            "<p style='margin:4px 0;'><strong>Tərəf:</strong> " + safe(otherParty) + "</p>" +
+            "<p style='margin:4px 0;'><strong>Tarix:</strong> " + fmt(startAt) + "</p>" +
+            "</div>",
+            link, "Detallara bax", ""
         );
     }
 

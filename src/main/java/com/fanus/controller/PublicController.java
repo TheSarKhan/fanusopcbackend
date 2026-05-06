@@ -4,10 +4,12 @@ import com.fanus.dto.*;
 import com.fanus.service.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -25,6 +27,7 @@ public class PublicController {
     private final TestimonialService testimonialService;
     private final SiteConfigService siteConfigService;
     private final AppointmentService appointmentService;
+    private final PsychologistTimeSlotService timeSlotService;
 
     // Psychologists
     @GetMapping("/psychologists")
@@ -35,6 +38,14 @@ public class PublicController {
     @GetMapping("/psychologists/{id}")
     public PsychologistDto getPsychologist(@PathVariable Long id) {
         return psychologistService.findById(id);
+    }
+
+    @GetMapping("/psychologists/{id}/availability")
+    public List<AvailableSlotDto> psychologistAvailability(
+            @PathVariable Long id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return timeSlotService.availability(id, from, to);
     }
 
     // Stats

@@ -65,6 +65,13 @@ public class Psychologist {
     @Column(name = "graduation_year")
     private String graduationYear;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private User user;
+
+    @Column(name = "default_session_minutes", nullable = false)
+    private int defaultSessionMinutes;
+
     @Column(name = "accent_color", nullable = false)
     private String accentColor;
 
@@ -84,5 +91,6 @@ public class Psychologist {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (!active) active = true;
+        if (defaultSessionMinutes <= 0) defaultSessionMinutes = 50;
     }
 }

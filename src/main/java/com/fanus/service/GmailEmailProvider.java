@@ -62,6 +62,42 @@ public class GmailEmailProvider implements EmailService {
         send(to, "Fanus – Müraciətiniz Haqqında Bildiriş", templateService.buildPsychologistRejected(firstName, adminNote));
     }
 
+    @Override
+    public void sendAppointmentReceived(String to, String firstName, String requestedPsychologist, java.time.LocalDateTime requestedStartAt) {
+        send(to, "Fanus – Müraciətiniz qəbul edildi",
+            templateService.buildAppointmentReceived(firstName, requestedPsychologist, requestedStartAt));
+    }
+
+    @Override
+    public void sendAppointmentAssigned(String to, String firstName, String psychologistName, java.time.LocalDateTime startAt, String sessionFormat) {
+        send(to, "Fanus – Randevunuz təyin edildi",
+            templateService.buildAppointmentAssigned(firstName, psychologistName, startAt, sessionFormat));
+    }
+
+    @Override
+    public void sendAppointmentAssignedPsychologist(String to, String firstName, String patientName, java.time.LocalDateTime startAt, String note) {
+        send(to, "Fanus – Yeni randevu təyin edildi",
+            templateService.buildAppointmentAssignedPsychologist(firstName, patientName, startAt, note));
+    }
+
+    @Override
+    public void sendAppointmentConfirmed(String to, String firstName, String psychologistName, java.time.LocalDateTime startAt) {
+        send(to, "Fanus – Randevunuz təsdiqləndi",
+            templateService.buildAppointmentConfirmed(firstName, psychologistName, startAt));
+    }
+
+    @Override
+    public void sendAppointmentRejected(String to, String firstName, String adminNote) {
+        send(to, "Fanus – Randevunuza yenidən baxılır",
+            templateService.buildAppointmentRejected(firstName, adminNote));
+    }
+
+    @Override
+    public void sendAppointmentCancelled(String to, String firstName, String otherPartyName, java.time.LocalDateTime startAt, String cancelledBy) {
+        send(to, "Fanus – Randevu ləğv edildi",
+            templateService.buildAppointmentCancelled(firstName, otherPartyName, startAt, cancelledBy));
+    }
+
     private void send(String to, String subject, String html) {
         try {
             MimeMessage msg = mailSender.createMimeMessage();

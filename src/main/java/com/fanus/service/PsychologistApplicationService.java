@@ -100,6 +100,8 @@ public class PsychologistApplicationService {
             .bgColor(colors[1])
             .displayOrder(psyCount + 1)
             .active(true)
+            .user(user)
+            .defaultSessionMinutes(50)
             .build();
         psychologistRepository.save(psychologist);
 
